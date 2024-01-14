@@ -10,7 +10,6 @@ export default function page() {
   const [data, setData] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('')
 
-
   // Event handler for select change
   const handleSelectChange = (e) => {
     setSelectedCategory(e.target.value)``

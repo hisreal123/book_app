@@ -4,7 +4,7 @@ const express = require('express')
 const reload = require('reload')
 const multer = require('multer')
 // const bodyParser = require('body-parser')
-// const path = require('path')
+const path = require('path')
 // const fs = require('fs')
 const mongoose = require('mongoose')
 const connectDB = require('./connectDB')
@@ -22,7 +22,7 @@ app.use(
 app.use(express.urlencoded({ extended: true }))
 
 app.use(express.json())
-app.use('/uploads', express.static('uploads'))
+app.use('uploads', express.static('uploads'))
 
 app.get('/', (req, res) => {
   res.json('Hello World !!! lorem   ssss')
@@ -61,14 +61,16 @@ app.get('/api/books/:slug', async (req, res) => {
   }
 })
 
-
 // SET_STORAGE
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, '/uploads')
+    cb(null, 'uploads')
   },
   filename: function (req, file, cb) {
-    cb(null, file.fieldname + '-' + Date.now())
+    cb(
+      null,
+      file.fieldname + '-' + Date.now() + path.extname(file.originalname)
+    )
   },
 })
 
@@ -77,7 +79,9 @@ var upload = multer({ storage: storage })
 // Add new book to database
 app.post('/api/books', upload.single('thumbnail'), async (req, res) => {
   try {
-    console.log(req.file)
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' })
+    }
 
     if (!req.body.title || !req.body.slug) {
       return res
@@ -85,27 +89,35 @@ app.post('/api/books', upload.single('thumbnail'), async (req, res) => {
         .json({ error: 'Title and slug are required fields' })
     }
 
-    const newBook = new Book({
-      title: req.body.title,
-      slug: req.body.slug,
-      stars: req.body.stars || 0,
-      description: req.body.description || '',
-      category: req.body.category || '',
-      thumbnail: req.file.path
-    })
+    if (req.file.filename) {
+      const newBook = new Book({
+        title: req.body.title,
+        slug: req.body.slug,
+        stars: req.body.stars || 0,
+        description: req.body.description || '',
+        category: req.body.category || '',
+        thumbnail: req.file.filename,
+      })
+      const validateError = newBook.validateSync()
+      if (validateError) {
+        console.error('Validation error:', validateError)
+        return res
+          .status(400)
+          .json({ error: 'Invalid book data. Please check the input.' })
+      }
 
-    // Validate the new book object
-    const validateError = newBook.validateSync()
-    if (validateError) {
-      console.error('Validation error:', validateError)
-      return res
-        .status(400)
-        .json({ error: 'Invalid book data. Please check the input.' })
+      await Book.create(newBook)
+        .then((res) => {
+          console.log('Mongo results', res)
+        })
+        .catch((err) => {
+          console.log(err)
+        })
+
+      res.json('Data submitted')
     }
 
-    await Book.create(newBook)
-    res.json('Data submitted')
-    console.log('Received request with data:', req.body)
+    // Validate the new book object
   } catch (error) {
     console.error('Error adding new book:', error) // Log the actual error
     res

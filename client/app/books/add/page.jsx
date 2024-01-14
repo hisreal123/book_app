@@ -53,6 +53,8 @@ const page = () => {
         console.error(`Erro adding a new book ${error}`)
         console.log('==============================')
       })
+
+    console.log(response)
   }
 
   const handleCategoryChange = (e) => {
@@ -63,7 +65,7 @@ const page = () => {
       <form
         className="flex flex-col"
         onSubmit={createBook}
-        enctype="multipart/form-data"
+        encType="multipart/form-data"
       >
         <input
           type="text"

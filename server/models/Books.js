@@ -21,6 +21,7 @@ const BookSchema = new Schema({
   },
   thumbnail: {
     type: String,
+    required: true,
   },
   category: {
     type: Array,
